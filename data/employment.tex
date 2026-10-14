@@ -1,0 +1,35 @@
+% =====================================================================
+%  EMPLOYMENT -- one \employment{...} per position, in any order.
+%  Entries are sorted newest-first by 'from' automatically.
+%
+%  Keys (all optional except 'from'):
+%    from, to       2023-10 -> "Oct 2023";  2023 -> "2023";  present, etc. as is
+%    position, institution, location, details
+%    sort           override the sort key if needed (e.g. sort = 2023-10)
+%  Values containing commas must be wrapped in braces: location = {Vienna, Austria}
+% =====================================================================
+
+\employment{
+  from        = 2024-10,
+  to          = present,
+  position    = Postdoctoral Researcher,
+  institution = {Institute of Physics, Example University},
+  location    = {Vienna, Austria},
+  details     = {Group of Prof.~A.~Smith; funded by FWF grant P-12345}
+}
+
+\employment{
+  from        = 2020-10,
+  to          = 2024-09,
+  position    = Doctoral Researcher \& Teaching Assistant,
+  institution = {Department of Physics, Sample University},
+  location    = {Graz, Austria}
+}
+
+\employment{
+  from        = 2018-03,
+  to          = 2020-06,
+  position    = Student Research Assistant,
+  institution = Sample University,
+  location    = {Graz, Austria}
+}

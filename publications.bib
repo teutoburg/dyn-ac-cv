@@ -1,0 +1,95 @@
+% Example entries -- replace with your own .bib file.
+%
+% Month in the left column: use  date = {2025-03}  (or year + month).
+%
+% Unpublished work only needs author + title + pubstate, e.g.
+%   pubstate = {inpreparation} | {submitted} | {accepted} | {inpress}
+% Add journal/booktitle to get "Submitted to <journal>", and eprint for arXiv.
+%
+% Optional keywords for the CV:
+%   cv-firstauthor  force into first-author list (e.g. shared first authorship)
+%   cv-coauthor     force into co-author list
+%   cv-exclude      hide from the CV
+
+% ---------------- pending ----------------
+
+@unpublished{doe-inprep-memory,
+  author   = {Doe, Jane and Smith, Alice},
+  title    = {Memory Kernels for Strongly Driven Spin Chains},
+  pubstate = {inpreparation}
+}
+
+@article{doe-submitted-witness,
+  author        = {Doe, Jane and Miller, Tom and Smith, Alice},
+  title         = {Scalable Entanglement Witnesses for Dissipative Lattices},
+  journal       = {Physical Review Letters},
+  pubstate      = {submitted},
+  eprint        = {2507.01234},
+  eprinttype    = {arxiv},
+  eprintclass   = {quant-ph}
+}
+
+@inproceedings{wang-submitted-proc,
+  author    = {Wang, Li and Doe, Jane},
+  title     = {Tensor-Network Methods for Non-{Markovian} Baths},
+  booktitle = {Proceedings of the International Conference on Quantum Technologies 2026},
+  pubstate  = {submitted}
+}
+
+% ---------------- published ----------------
+
+@article{doe2025nonmarkov,
+  author  = {Doe, Jane and Smith, Alice},
+  title   = {Non-{Markovian} Dynamics of Driven Spin Chains},
+  journal = {Physical Review Letters},
+  volume  = {134},
+  pages   = {040201},
+  date    = {2025-01},
+  doi     = {10.1103/PhysRevLett.134.040201}
+}
+
+@article{miller2025shared,
+  author   = {Miller, Tom and Doe, Jane and Smith, Alice},
+  title    = {Witnessing Entanglement in Dissipative Lattices},
+  journal  = {Physical Review A},
+  volume   = {111},
+  pages    = {012345},
+  date     = {2025-06},
+  keywords = {cv-firstauthor},
+  note     = {T.~Miller and J.~Doe contributed equally}
+}
+
+@article{doe2023decoherence,
+  author  = {Doe, Jane and Jones, Bob},
+  title   = {Decoherence-Free Subspaces in Coupled Spin Chains},
+  journal = {New Journal of Physics},
+  volume  = {25},
+  pages   = {083012},
+  year    = {2023},
+  month   = aug
+}
+
+@article{jones2024lindblad,
+  author  = {Jones, Bob and Doe, Jane and Wang, Li},
+  title   = {Beyond {Lindblad}: Memory Effects in Quantum Transport},
+  journal = {Quantum},
+  volume  = {8},
+  pages   = {1234},
+  date    = {2024-11}
+}
+
+@inproceedings{wang2022numerics,
+  author    = {Wang, Li and Doe, Jane},
+  title     = {Efficient Numerics for Open Quantum Systems},
+  booktitle = {Proceedings of the International Conference on Quantum Technologies},
+  pages     = {112--118},
+  year      = {2022}
+}
+
+@article{smith2021old,
+  author   = {Smith, Alice and Doe, Jane},
+  title    = {An Old Note I Prefer to Leave Out},
+  journal  = {arXiv preprint},
+  year     = {2021},
+  keywords = {cv-exclude}
+}

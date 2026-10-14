@@ -1,0 +1,569 @@
+% =====================================================================
+%  academiccv.sty -- data-driven academic CV
+%
+%  You normally never need to edit this file. Entries live in data/*.tex
+%  and publications.bib; your name and contact details in data/personal.tex.
+%  To change how an entry LOOKS, \renewcommand the matching
+%  \cv...format macro (section 3) in the preamble of main.tex.
+% =====================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{academiccv}[2026/10/03 v1.0 Data-driven academic CV]
+
+\RequirePackage{etoolbox}
+\RequirePackage{xcolor}
+\RequirePackage{enumitem}
+
+% ---------------------------------------------------------------------
+% 1. Layout parameters (all can be changed in main.tex)
+% ---------------------------------------------------------------------
+\definecolor{cvaccent}{RGB}{20,70,120}
+\newlength{\cvdatewidth}   \setlength{\cvdatewidth}{2.7cm}  % left column
+\newlength{\cvcolsep}      \setlength{\cvcolsep}{0.8em}     % gap between columns
+\newlength{\cvitemsep}     \setlength{\cvitemsep}{0.55\baselineskip}
+
+\newcommand{\cvsection}[1]{%
+  \par\addvspace{1.4\baselineskip}%
+  \noindent{\color{cvaccent}\large\scshape #1}\par\nobreak
+  \vspace{-0.45\baselineskip}%
+  \noindent{\color{cvaccent!60}\rule{\linewidth}{0.6pt}}\par\nobreak
+  \vspace{0.35\baselineskip}\nobreak}
+
+\newcommand{\cvsubsection}[1]{%
+  \par\addvspace{0.6\baselineskip}%
+  \noindent\hspace*{\dimexpr\cvdatewidth+\cvcolsep}%
+  {\color{cvaccent}\itshape #1}\par\nobreak
+  \vspace{0.25\baselineskip}\nobreak}
+
+% Two-column row: left = date/label, right = content
+\newcommand{\cvitem}[2]{%
+  \par\noindent
+  \begin{minipage}[t]{\cvdatewidth}\raggedright\small #1\end{minipage}%
+  \hspace{\cvcolsep}%
+  \begin{minipage}[t]{\dimexpr\linewidth-\cvdatewidth-\cvcolsep}#2\end{minipage}%
+  \par\addvspace{\cvitemsep}}
+
+% Header styles (used by \printheader)
+\newcommand{\cvnamestyle}[1]{{\fontsize{24}{28}\selectfont\color{cvaccent}#1}}
+\newcommand{\cvpositionstyle}[1]{{\large #1}}
+\newcommand{\cvcontactsep}{\enspace$\cdot$\enspace}
+
+% Smaller, grey text for optional details
+\newcommand{\cvdetails}[1]{{\small\color{black!70}#1}}
+
+% Bullet list used when a year has more than one course
+\newlist{cvcourselist}{itemize}{1}
+\setlist[cvcourselist]{label=\textbullet, leftmargin=1em, nosep, itemsep=2pt}
+
+% ---------------------------------------------------------------------
+% 2. Dates: "2023-10" -> "Oct 2023", "2023-10-05" -> "5 Oct 2023",
+%    anything else ("2023", "present", "since 2021") is printed as is.
+% ---------------------------------------------------------------------
+\ExplSyntaxOn
+\seq_new:N \l__cv_date_seq
+\NewExpandableDocumentCommand \cvmonthname { m }
+  {
+    \int_case:nn {#1}
+      {
+        {1}{Jan} {2}{Feb} {3}{Mar} {4}{Apr} {5}{May} {6}{Jun}
+        {7}{Jul} {8}{Aug} {9}{Sep} {10}{Oct} {11}{Nov} {12}{Dec}
+      }
+  }
+\NewDocumentCommand \cvformatdate { m }
+  {
+    \regex_extract_once:nnNTF
+      { \A\s*(\d{4})-(\d{1,2})(?:-(\d{1,2}))?\s*\Z } {#1} \l__cv_date_seq
+      {
+        \tl_if_blank:eF { \seq_item:Nn \l__cv_date_seq {4} }
+          { \int_eval:n { \seq_item:Nn \l__cv_date_seq {4} } ~ }
+        \cvmonthname { \seq_item:Nn \l__cv_date_seq {3} } ~
+        \seq_item:Nn \l__cv_date_seq {2}
+      }
+      {#1}
+  }
+\ExplSyntaxOff
+
+% line can only break after the dash: "Oct 2020 --" / "Sep 2024"
+\newcommand{\cvdaterange}[2]{%
+  \ifblank{#2}{\mbox{\cvformatdate{#1}}}%
+    {\mbox{\cvformatdate{#1}\,--} \mbox{\cvformatdate{#2}}}}
+
+% ---------------------------------------------------------------------
+% 3. Entry formats -- \renewcommand these in main.tex to restyle.
+%    \ifblank{<field>}{<if empty>}{<if given>} handles optional fields.
+% ---------------------------------------------------------------------
+% #1 from  #2 to  #3 position  #4 institution  #5 location  #6 details
+\newcommand{\cvemploymentformat}[6]{%
+  \cvitem{\cvdaterange{#1}{#2}}{%
+    \textbf{#3}%
+    \ifblank{#4}{}{\\ #4}\ifblank{#5}{}{, #5}%
+    \ifblank{#6}{}{\\ \cvdetails{#6}}}}
+
+% #1 from  #2 to  #3 degree  #4 institution  #5 location
+% #6 thesis  #7 advisor  #8 details
+\newcommand{\cveducationformat}[8]{%
+  \cvitem{\cvdaterange{#1}{#2}}{%
+    \textbf{#3}%
+    \ifblank{#4}{}{\\ #4}\ifblank{#5}{}{, #5}%
+    \ifblank{#6}{}{\\ \cvdetails{Thesis: \textit{#6}}}%
+    \ifblank{#7}{}{\\ \cvdetails{Advisor: #7}}%
+    \ifblank{#8}{}{\\ \cvdetails{#8}}}}
+
+% Course content only -- the year goes in the left column automatically.
+% #1 title  #2 term  #3 institution  #4 details
+\newcommand{\cvcourseformat}[4]{%
+  \textbf{#1}\ifblank{#2}{}{ (#2)}%
+  \ifblank{#3}{}{, #3}%
+  \ifblank{#4}{}{\\ \cvdetails{#4}}}
+
+% #1 date  #2 title  #3 event  #4 location  #5 type  #6 url  #7 details
+\newcommand{\cvtalkformat}[7]{%
+  \cvitem{\cvformatdate{#1}}{%
+    \ifblank{#6}{\textit{#2}}{\href{#6}{\textit{#2}}}%
+    \ifblank{#5}{}{ \cvdetails{[#5]}}%
+    \ifblank{#3}{}{\\ #3}\ifblank{#4}{}{, #4}%
+    \ifblank{#7}{}{\\ \cvdetails{#7}}}}
+
+\providecommand{\href}[2]{#2}% fallback if hyperref is not loaded
+
+% ---------------------------------------------------------------------
+% 4. Data collection, sorting and grouping (expl3)
+% ---------------------------------------------------------------------
+\ExplSyntaxOn
+
+\clist_const:Nn \c__cv_keys_clist
+  {
+    from, to, date, position, institution, location, details, degree,
+    thesis, advisor, role, year, title, term, event, type, url, sort
+  }
+\clist_map_inline:Nn \c__cv_keys_clist
+  {
+    \tl_new:c { l__cv_#1_tl }
+    \keys_define:nn { academiccv } { #1 .tl_set:c = { l__cv_#1_tl } }
+  }
+
+\int_new:N \g__cv_index_int
+\tl_new:N  \l__cv_key_tl
+\seq_new:N \g__cv_employment_seq
+\seq_new:N \g__cv_education_seq
+\seq_new:N \g__cv_talk_seq
+\seq_new:N \g__cv_roles_seq
+\prop_new:N \g__cv_role_label_prop
+\seq_new:N \l__cv_years_seq
+\seq_new:N \l__cv_group_seq
+\tl_new:N  \l__cv_groupyear_tl
+
+\msg_new:nnn { academiccv } { unknown-role }
+  { Unknown~teaching~role~'#1'.~Declare~it~with~\iow_char:N\\cvdeclarerole{#1}{Heading}. }
+
+% Read one entry's key-value list (all fields reset first)
+\cs_new_protected:Npn \__cv_read:n #1
+  {
+    \clist_map_inline:Nn \c__cv_keys_clist { \tl_clear:c { l__cv_##1_tl } }
+    \keys_set:nn { academiccv } {#1}
+    \int_gincr:N \g__cv_index_int
+  }
+
+% Sort key: the 'sort' field if given, otherwise the field named in #1
+\cs_new_protected:Npn \__cv_set_key:N #1
+  {
+    \tl_set:Ne \l__cv_key_tl
+      {
+        \tl_if_blank:VTF \l__cv_sort_tl
+          { \tl_to_str:N #1 } { \tl_to_str:N \l__cv_sort_tl }
+      }
+  }
+
+% Store item as {sortkey}{index}{<format command with its arguments>}
+\cs_new_protected:Npn \__cv_store:Nn #1#2
+  {
+    \seq_gput_right:Ne #1
+      { { \l__cv_key_tl } { \int_use:N \g__cv_index_int } { \exp_not:n {#2} } }
+  }
+\cs_generate_variant:Nn \__cv_store:Nn { Ne , ce }
+
+% Newest first (descending string comparison); ties keep file order
+\cs_new:Npn \__cv_compare:nn #1#2 { \__cv_compare_aux:nnnnnn #1 #2 }
+\cs_new:Npn \__cv_compare_aux:nnnnnn #1#2#3#4#5#6
+  {
+    \str_compare:nNnTF {#1} > {#4} { \sort_return_same: }
+      {
+        \str_compare:nNnTF {#1} < {#4} { \sort_return_swapped: }
+          {
+            \int_compare:nNnTF {#2} > {#5}
+              { \sort_return_swapped: } { \sort_return_same: }
+          }
+      }
+  }
+\cs_new:Npn \__cv_item_key:nnn #1#2#3 {#1}
+\cs_new:Npn \__cv_item_content:nnn #1#2#3 {#3}
+
+\cs_new_protected:Npn \__cv_print_sorted:N #1
+  {
+    \seq_gsort:Nn #1 { \__cv_compare:nn {##1} {##2} }
+    \seq_map_inline:Nn #1 { \__cv_item_content:nnn ##1 }
+  }
+
+% ---------- user commands for data files ----------
+\NewDocumentCommand \employment { m }
+  {
+    \__cv_read:n {#1}
+    \__cv_set_key:N \l__cv_from_tl
+    \__cv_store:Ne \g__cv_employment_seq
+      {
+        \exp_not:N \cvemploymentformat
+          { \exp_not:V \l__cv_from_tl } { \exp_not:V \l__cv_to_tl }
+          { \exp_not:V \l__cv_position_tl } { \exp_not:V \l__cv_institution_tl }
+          { \exp_not:V \l__cv_location_tl } { \exp_not:V \l__cv_details_tl }
+      }
+  }
+
+\NewDocumentCommand \education { m }
+  {
+    \__cv_read:n {#1}
+    \__cv_set_key:N \l__cv_from_tl
+    \__cv_store:Ne \g__cv_education_seq
+      {
+        \exp_not:N \cveducationformat
+          { \exp_not:V \l__cv_from_tl } { \exp_not:V \l__cv_to_tl }
+          { \exp_not:V \l__cv_degree_tl } { \exp_not:V \l__cv_institution_tl }
+          { \exp_not:V \l__cv_location_tl } { \exp_not:V \l__cv_thesis_tl }
+          { \exp_not:V \l__cv_advisor_tl } { \exp_not:V \l__cv_details_tl }
+      }
+  }
+
+\NewDocumentCommand \talk { m }
+  {
+    \__cv_read:n {#1}
+    \__cv_set_key:N \l__cv_date_tl
+    \__cv_store:Ne \g__cv_talk_seq
+      {
+        \exp_not:N \cvtalkformat
+          { \exp_not:V \l__cv_date_tl } { \exp_not:V \l__cv_title_tl }
+          { \exp_not:V \l__cv_event_tl } { \exp_not:V \l__cv_location_tl }
+          { \exp_not:V \l__cv_type_tl } { \exp_not:V \l__cv_url_tl }
+          { \exp_not:V \l__cv_details_tl }
+      }
+  }
+
+% \cvdeclarerole{<role key>}{<heading>}: roles print in declaration order.
+% Re-declaring an existing role only changes its heading.
+\NewDocumentCommand \cvdeclarerole { m m }
+  {
+    \seq_if_in:NnF \g__cv_roles_seq {#1}
+      {
+        \seq_gput_right:Nn \g__cv_roles_seq {#1}
+        \seq_new:c { g__cv_course_#1_seq }
+      }
+    \prop_gput:Nnn \g__cv_role_label_prop {#1} {#2}
+  }
+
+\NewDocumentCommand \course { m }
+  {
+    \__cv_read:n {#1}
+    \tl_set:Ne \l__cv_role_tl { \tl_trim_spaces:V \l__cv_role_tl }
+    \seq_if_exist:cTF { g__cv_course_ \l__cv_role_tl _seq }
+      {
+        \__cv_set_key:N \l__cv_year_tl
+        \__cv_store:ce { g__cv_course_ \l__cv_role_tl _seq }
+          {
+            \exp_not:N \cvcourseformat
+              { \exp_not:V \l__cv_title_tl } { \exp_not:V \l__cv_term_tl }
+              { \exp_not:V \l__cv_institution_tl } { \exp_not:V \l__cv_details_tl }
+          }
+      }
+      { \msg_error:nnV { academiccv } { unknown-role } \l__cv_role_tl }
+  }
+
+% ---------- print commands ----------
+\NewDocumentCommand \printemployment {} { \__cv_print_sorted:N \g__cv_employment_seq }
+\NewDocumentCommand \printeducation  {} { \__cv_print_sorted:N \g__cv_education_seq }
+\NewDocumentCommand \printtalks      {} { \__cv_print_sorted:N \g__cv_talk_seq }
+
+% \printteaching       -> all roles, each under its heading
+% \printteaching[tutor] -> only one role, without heading
+\NewDocumentCommand \printteaching { o }
+  {
+    \IfNoValueTF {#1}
+      {
+        \seq_map_inline:Nn \g__cv_roles_seq
+          { \__cv_print_role:ne {##1} { \prop_item:Nn \g__cv_role_label_prop {##1} } }
+      }
+      { \__cv_print_role:nn {#1} { } }
+  }
+
+\cs_new_protected:Npn \__cv_print_role:nn #1#2
+  {
+    \seq_if_empty:cF { g__cv_course_#1_seq }
+      {
+        \tl_if_blank:nF {#2} { \cvsubsection {#2} }
+        \seq_gsort:cn { g__cv_course_#1_seq } { \__cv_compare:nn {##1} {##2} }
+        % distinct years, newest first
+        \seq_clear:N \l__cv_years_seq
+        \seq_map_inline:cn { g__cv_course_#1_seq }
+          { \seq_put_right:Ne \l__cv_years_seq { \__cv_item_key:nnn ##1 } }
+        \seq_remove_duplicates:N \l__cv_years_seq
+        \seq_map_inline:Nn \l__cv_years_seq
+          {
+            \__cv_collect_group:cn { g__cv_course_#1_seq } {##1}
+            \__cv_print_group:n {##1}
+          }
+      }
+  }
+\cs_generate_variant:Nn \__cv_print_role:nn { ne }
+
+\cs_new_protected:Npn \__cv_collect_group:Nn #1#2
+  {
+    \seq_clear:N \l__cv_group_seq
+    \tl_set:Nn \l__cv_groupyear_tl {#2}
+    \seq_map_function:NN #1 \__cv_collect_aux:n
+  }
+\cs_generate_variant:Nn \__cv_collect_group:Nn { cn }
+\cs_new_protected:Npn \__cv_collect_aux:n #1 { \__cv_collect_aux:nnn #1 }
+\cs_new_protected:Npn \__cv_collect_aux:nnn #1#2#3
+  { \str_if_eq:VnT \l__cv_groupyear_tl {#1} { \seq_put_right:Nn \l__cv_group_seq {#3} } }
+
+% One course in a year -> plain entry; several -> bullet list
+\cs_new_protected:Npn \__cv_print_group:n #1
+  {
+    \int_compare:nNnTF { \seq_count:N \l__cv_group_seq } = { 1 }
+      { \cvitem {#1} { \seq_item:Nn \l__cv_group_seq { 1 } } }
+      {
+        \cvitem {#1}
+          {
+            \begin{cvcourselist}
+              \seq_map_inline:Nn \l__cv_group_seq { \item ##1 }
+            \end{cvcourselist}
+          }
+      }
+  }
+
+% ---------- personal details: \personal{...} and \printheader ----------
+\clist_const:Nn \c__cv_personal_keys_clist
+  { name, bibname, position, email, phone, website, orcid, github, address }
+\clist_map_inline:Nn \c__cv_personal_keys_clist
+  {
+    \tl_new:c { g__cv_p_#1_tl }
+    \keys_define:nn { academiccv / personal } { #1 .tl_gset:c = { g__cv_p_#1_tl } }
+  }
+\seq_new:N \l__cv_contact_seq
+\seq_new:N \l__cv_words_seq
+\str_new:N \l__cv_tmp_str
+\str_new:N \l__cv_disp_str
+
+\NewDocumentCommand \personal { m }
+  {
+    \keys_set:nn { academiccv / personal } {#1}
+    % name used to recognise you in the .bib: 'bibname', else last word of 'name'
+    \tl_if_blank:VTF \g__cv_p_bibname_tl
+      {
+        \seq_set_split:NnV \l__cv_words_seq { ~ } \g__cv_p_name_tl
+        \seq_remove_all:Nn \l__cv_words_seq { }
+        \exp_args:Ne \cvsetmyname { \seq_item:Nn \l__cv_words_seq { -1 } }
+      }
+      { \exp_args:NV \cvsetmyname \g__cv_p_bibname_tl }
+  }
+
+\NewExpandableDocumentCommand \cvname { } { \tl_use:N \g__cv_p_name_tl }
+
+% add one contact item: #1 field, #2 link prefix ('-' = no link), #3 label
+\cs_new_protected:Npn \__cv_contact:nnn #1#2#3
+  {
+    \exp_args:Nv \tl_if_blank:nF { g__cv_p_#1_tl }
+      {
+        \str_set:Ne \l__cv_tmp_str { \exp_args:Nv \tl_to_str:n { g__cv_p_#1_tl } }
+        \str_set_eq:NN \l__cv_disp_str \l__cv_tmp_str
+        \str_if_eq:nnT {#1} { website }
+          {
+            \regex_replace_once:nnN { \A https?:// (www\.)? } { } \l__cv_disp_str
+            \regex_replace_once:nnN { /\Z } { } \l__cv_disp_str
+          }
+        \seq_put_right:Ne \l__cv_contact_seq
+          {
+            \exp_not:n {#3}
+            \str_if_eq:nnTF {#2} { - }
+              { \l__cv_disp_str }
+              { \exp_not:N \href { \tl_to_str:n {#2} \l__cv_tmp_str } { \l__cv_disp_str } }
+          }
+      }
+  }
+
+\NewDocumentCommand \printheader { }
+  {
+    \seq_clear:N \l__cv_contact_seq
+    \__cv_contact:nnn { email }   { mailto: }             { }
+    \__cv_contact:nnn { phone }   { - }                   { }
+    \__cv_contact:nnn { website } { }                     { }
+    \__cv_contact:nnn { orcid }   { https://orcid.org/ }  { ORCID~ }
+    \__cv_contact:nnn { github }  { https://github.com/ } { GitHub~ }
+    \begin{center}
+      \cvnamestyle { \tl_use:N \g__cv_p_name_tl }
+      \tl_if_blank:VF \g__cv_p_position_tl
+        { \\[4pt] \cvpositionstyle { \tl_use:N \g__cv_p_position_tl } }
+      \seq_if_empty:NF \l__cv_contact_seq
+        { \\[6pt] { \small \seq_use:Nn \l__cv_contact_seq { \cvcontactsep } } }
+      \tl_if_blank:VF \g__cv_p_address_tl
+        { \\ { \small \tl_use:N \g__cv_p_address_tl } }
+    \end{center}
+  }
+
+% default roles (headings can be changed with \cvdeclarerole in main.tex)
+\cvdeclarerole { lecturer } { As~a~lecturer }
+\cvdeclarerole { tutor }    { As~a~student~tutor }
+
+\ExplSyntaxOff
+
+% ---------------------------------------------------------------------
+% 5. Publications (only active if biblatex is loaded)
+%
+%  Left column: month + year of the entry (from date = {2025-03} or
+%  year/month), or the publication state for unpublished work.
+%
+%  Unpublished work: a minimal bib entry with a 'pubstate' field, e.g.
+%    @unpublished{doe-inprep, author = {Doe, Jane and Smith, Alice},
+%                 title = {Some Title}, pubstate = {inpreparation}}
+%  Recognised pubstate values (anything else is printed as written):
+%    inpreparation  -> "In preparation"   (listed first)
+%    submitted      -> "Submitted"        (listed second)
+%    accepted / inpress / forthcoming     (listed third)
+%  If a journal/booktitle is given, "In: X" becomes "Submitted to X"
+%  (submitted) or "To be submitted to X" (inpreparation).
+%
+%  First-author / co-author split: the first author's family name is
+%  compared with `bibname` from data/personal.tex. Bib keywords override it:
+%    keywords = {cv-firstauthor}  -> force first-author list
+%                                    (e.g. shared first authorship)
+%    keywords = {cv-coauthor}     -> force co-author list
+%    keywords = {cv-exclude}      -> leave out of the CV
+%
+%  Checks for \printbibliography[check=...]:
+%    firstauthor, coauthor                    (published + pending)
+%    firstauthor-published, coauthor-published (without pending)
+%    pending                                  (inpreparation + submitted only)
+% ---------------------------------------------------------------------
+\newcommand*{\cv@familyname}{}
+\newcommand*{\cvsetmyname}[1]{\def\cv@familyname{#1}}
+\newcommand*{\cvhighlightname}[1]{\textbf{#1}}
+
+\newtoggle{cv@isme}
+\newtoggle{cv@pending}
+\newsavebox{\cv@scratchbox}
+
+% biblatex must be loaded BEFORE academiccv for this part to work
+\@ifpackageloaded{biblatex}{}{%
+  \PackageInfo{academiccv}{biblatex not loaded: publication helpers off}%
+  \endinput}
+
+% ---- strings ----
+\NewBibliographyString{accepted,cvsubmittedto,cvtobesubmittedto}
+\DefineBibliographyStrings{english}{%
+  accepted          = {accepted},
+  cvsubmittedto     = {submitted to},
+  cvtobesubmittedto = {to be submitted to},
+}
+
+% ---- sorting: pending work first, then newest first (year, month) ----
+\DeclareSourcemap{
+  \maps[datatype=bibtex]{
+    \map[overwrite=false]{
+      \step[fieldsource=pubstate, match=\regexp{\A\s*inpreparation\s*\Z}, final]
+      \step[fieldset=presort, fieldvalue={aa}]
+    }
+    \map[overwrite=false]{
+      \step[fieldsource=pubstate, match=\regexp{\A\s*submitted\s*\Z}, final]
+      \step[fieldset=presort, fieldvalue={ab}]
+    }
+    \map[overwrite=false]{
+      \step[fieldsource=pubstate,
+            match=\regexp{\A\s*(accepted|inpress|forthcoming)\s*\Z}, final]
+      \step[fieldset=presort, fieldvalue={ac}]
+    }
+  }
+}
+\DeclareSortingTemplate{cvnewestfirst}{
+  \sort{\field{presort}}
+  \sort[final]{\field{sortkey}}
+  \sort[direction=descending]{\field{sortyear}\field{year}\literal{9999}}
+  \sort[direction=descending]{\field[padside=left,padwidth=2,padchar=0]{month}\literal{00}}
+  \sort{\field{sorttitle}\field{title}}
+}
+\ExecuteBibliographyOptions{sorting=cvnewestfirst}
+% labels are dates, not numbers, so the split-bibliography numbering warning is moot
+\BiblatexSplitbibDefernumbersWarningOff
+
+% ---- bold own name ----
+\renewcommand*{\mkbibcompletename}[1]{%
+  \ifdefstrequal{\namepartfamily}{\cv@familyname}
+    {\cvhighlightname{#1}}{#1}}
+
+% ---- first-author / pending tests ----
+\DeclareNameFormat{cv@checkme}{%
+  \nameparts{#1}%
+  \ifdefstrequal{\namepartfamily}{\cv@familyname}
+    {\global\toggletrue{cv@isme}}{}}
+
+\newcommand*{\cv@testfirst}{%
+  \global\togglefalse{cv@isme}%
+  \ifkeyword{cv-firstauthor}{\global\toggletrue{cv@isme}}{%
+    \ifkeyword{cv-coauthor}{}{%
+      \ifnameundef{author}{}{%
+        \sbox\cv@scratchbox{\printnames[cv@checkme][1-1]{author}}}}}}
+
+\newcommand*{\cv@testpending}{%
+  \global\togglefalse{cv@pending}%
+  \iffieldequalstr{pubstate}{inpreparation}{\global\toggletrue{cv@pending}}{}%
+  \iffieldequalstr{pubstate}{submitted}{\global\toggletrue{cv@pending}}{}}
+
+\defbibcheck{firstauthor}{\cv@testfirst\iftoggle{cv@isme}{}{\skipentry}}
+\defbibcheck{coauthor}{\cv@testfirst\iftoggle{cv@isme}{\skipentry}{}}
+\defbibcheck{pending}{\cv@testpending\iftoggle{cv@pending}{}{\skipentry}}
+\defbibcheck{firstauthor-published}{%
+  \cv@testfirst\cv@testpending
+  \iftoggle{cv@pending}{\skipentry}{\iftoggle{cv@isme}{}{\skipentry}}}
+\defbibcheck{coauthor-published}{%
+  \cv@testfirst\cv@testpending
+  \iftoggle{cv@pending}{\skipentry}{\iftoggle{cv@isme}{\skipentry}{}}}
+
+% ---- body: state lives in the left column, "In:" adapted for pending ----
+\renewbibmacro*{addendum+pubstate}{\printfield{addendum}}
+\renewbibmacro*{in:}{%
+  \iffieldequalstr{pubstate}{submitted}
+    {\bibstring{cvsubmittedto}\addspace}
+    {\iffieldequalstr{pubstate}{inpreparation}
+       {\bibstring{cvtobesubmittedto}\addspace}
+       {\bibstring{in}\printunit{\intitlepunct}}}}
+
+% no empty "()" after the journal when an entry has no year/issue yet
+\renewbibmacro*{issue+date}{%
+  \ifboolexpr{test {\iffieldundef{issue}} and test {\iffieldundef{year}}}
+    {}
+    {\printtext[parens]{%
+       \printfield{issue}%
+       \setunit*{\addspace}%
+       \usebibmacro{date}}}%
+  \newunit}
+
+% ---- left column label ----
+\DeclareFieldFormat{cv@pubstate}{%
+  \ifbibstring{#1}{\bibcpstring{#1}}{#1}}
+\newbibmacro*{cv:leftlabel}{%
+  \iffieldundef{pubstate}
+    {\iffieldundef{year}{}{%
+       \iffieldundef{month}{}{\cvmonthname{\thefield{month}}~}%
+       \thefield{year}}}
+    {\printfield[cv@pubstate]{pubstate}}}
+
+% Bibliography in the same two-column grid as the other sections
+\defbibenvironment{bibliography}
+  {\list
+     {\usebibmacro{cv:leftlabel}}
+     {\setlength{\labelwidth}{\cvdatewidth}%
+      \setlength{\leftmargin}{\dimexpr\cvdatewidth+\cvcolsep\relax}%
+      \setlength{\labelsep}{\cvcolsep}%
+      \setlength{\itemsep}{0.4\cvitemsep}%
+      \setlength{\parsep}{\bibparsep}%
+      \renewcommand*{\makelabel}[1]{{\small##1}\hfil}}%
+   \sloppy\clubpenalty4000\widowpenalty4000}
+  {\endlist}
+  {\item}
+
+\endinput
